@@ -69,6 +69,12 @@ class RegressionModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.layers = [nn.parameter()
+        self.learning_rate = 0.001
+        self.batch_size =
+        self.loss_fn = nn.Square_Loss
+        self.max_epochs = 10
+        self.avg_loss_threshold = 0.02
 
     def run(self, x):
         """
@@ -80,6 +86,8 @@ class RegressionModel(object):
             A node with shape (batch_size x 1) containing predicted y-values
         """
         "*** YOUR CODE HERE ***"
+        for layer in layers
+
 
     def get_loss(self, x, y):
         """
@@ -92,12 +100,34 @@ class RegressionModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        return self.loss_fn(x,y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        average_loss = float('inf')
+        total_loss = 0
+        num_samples = 0
+        epochs = 0
+        while average_loss > self.avg_loss_threshold and epochs < self.max_epochs:
+            epochs += 1
+            for x,y in dataset.iterate_once(self.batch_size):
+                y_pred = self.run(dataset.x)
+
+                # update layer weights
+                batch_loss = self.get_loss(y_pred, y)
+                layer_gradients = nn.gradients(batch_loss, self.layers)
+                [self.layers[i].update(layer_gradients[i], self.learning_rate) for i in range(len(self.layers))]
+
+                # added loss and number of training samples to running tally
+                total_loss += batch_loss
+                num_samples += self.batch_size
+
+            # compute average loss for tally
+            average_loss = total_loss / num_samples
+
 
 class DigitClassificationModel(object):
     """
