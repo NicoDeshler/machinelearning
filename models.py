@@ -273,16 +273,16 @@ class DeepQModel(object):
         "*** YOUR CODE HERE ***"
 
         # model architecture
-        input_layer = [(self.state_size, 100),(1, 100)]  # input layer weight and bias dimensions
-        hidden_layers = [(100, 200),(1,200),(200,100),(1,100)]   # hidden layer weight and bias dimensions
-        output_layer = [(100,self.num_actions),(1,self.num_actions)]  # output layer weight and bias dimensions
+        input_layer = [(self.state_size, 200),(1, 200)]  # input layer weight and bias dimensions
+        hidden_layers = [(200, 200),(1,200),(200,200),(1,200)]   # hidden layer weight and bias dimensions
+        output_layer = [(200,self.num_actions),(1,self.num_actions)]  # output layer weight and bias dimensions
         layer_dims = input_layer + hidden_layers + output_layer
         self.parameters = [nn.Parameter(dim[0],dim[1]) for dim in layer_dims]
 
         # training parameters
         self.learning_rate = 0.05
-        self.numTrainingGames = 1500
-        self.batch_size = 20
+        self.numTrainingGames = 10000
+        self.batch_size = 100
 
     def get_loss(self, states, Q_target):
         """

@@ -249,7 +249,7 @@ class PacmanDeepQAgent(PacmanQAgent):
         #Q_predict = None # a numpy array of Q network's prediction of size (batch_size x num_actions) on states.
         # Q_target = None # a numpy array of Q target of size (batch_size x num_actions)
 
-        Q_predict = network.run(states)
+        Q_predict = network.run(states).data
         Q_target = target_network.run(states)
 
         exploration_bonus = 1 / (2 * np.sqrt(self.counts[states_np[:,0],states_np[:,1]]/100))
@@ -263,27 +263,6 @@ class PacmanDeepQAgent(PacmanQAgent):
         Q_target = np.copy(Q_s.data)
         Q_target[np.arange(len(actions)),actions] = rewards + (1-dones)*self.discount*Qhat_eval + exploration_bonus
 
-        """
-        # unrolled
-
-        for i in range(len(minibatch)):
-            # sample
-            s = states[i]
-            a = actions[i]
-            r = rewards[i]
-            ns = next_states[i]
-            d = dones[i]
-
-            Q_s = network.run(s)
-            exploration_bonus = 1/(2*np.sqrt(self.counts[s]/100))
-
-            Q_ns = network.run(ns)
-            Qhat_ns = target_network.run(ns)
-            best_action_index = np.argmax(Q_ns)
-            Qhat_eval = Qhat_ns[best_action_index]
-
-            Q_target[s,a] = r + (1-int(d))*self.discount*Qhat_eval + exploration_bonus
-        """
         "*** YOUR CODE ENDS HERE ***"
 
         if self.td_error_clipping is not None:
