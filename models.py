@@ -44,13 +44,6 @@ class PerceptronModel(object):
         Train the perceptron until convergence.
         """
         "*** YOUR CODE HERE ***"
-        """
-        for x, y in dataset.iterate_once(1):
-            z = self.get_prediction(x)
-            if z != nn.as_scalar(y):
-                self.w.update(x, -1)
-        """
-
         converged = False
         while not converged:
             converged = True
@@ -69,11 +62,23 @@ class RegressionModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
-        self.layers = [nn.parameter()
-        self.learning_rate = 0.001
-        self.batch_size =
-        self.loss_fn = nn.Square_Loss
-        self.max_epochs = 10
+
+        # model architecture
+        hidden_layer_dims = [(100,100),(100,100)]
+        input_dim = [(1,hidden_layer_dims[0][0])]
+        output_dim = [(hidden_layer_dims[-1][1],1)]
+        layer_dims = input_dim + hidden_layer_dims + output_dim
+
+        # instantiate layers as parameter objects
+        self.layers = [nn.Parameter(dim[0],dim[1]) for dim in layer_dims]
+        self.num_layers = len(self.layers)
+        self.biases = [nn.Parameter(1,dim[1]) for dim in layer_dims]
+
+        # training parameters
+        self.loss_fn = nn.SquareLoss
+        self.learning_rate = .001
+        self.batch_size = 10
+        self.max_epochs = 100
         self.avg_loss_threshold = 0.02
 
     def run(self, x):
@@ -86,7 +91,17 @@ class RegressionModel(object):
             A node with shape (batch_size x 1) containing predicted y-values
         """
         "*** YOUR CODE HERE ***"
-        for layer in layers
+        layer_input = x
+        layer_output = None
+        for i in range(self.num_layers):
+            weights = self.layers[i]
+            bias = self.biases[i]
+            layer_output = nn.ReLU(nn.AddBias(nn.Linear(layer_input, weights), bias))
+            layer_input = layer_output
+
+        return layer_output
+
+
 
 
     def get_loss(self, x, y):
@@ -100,7 +115,8 @@ class RegressionModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
-        return self.loss_fn(x,y)
+        pred_y = self.run(x)
+        return self.loss_fn(pred_y, y)
 
     def train(self, dataset):
         """
@@ -114,15 +130,22 @@ class RegressionModel(object):
         while average_loss > self.avg_loss_threshold and epochs < self.max_epochs:
             epochs += 1
             for x,y in dataset.iterate_once(self.batch_size):
-                y_pred = self.run(dataset.x)
 
-                # update layer weights
-                batch_loss = self.get_loss(y_pred, y)
-                layer_gradients = nn.gradients(batch_loss, self.layers)
-                [self.layers[i].update(layer_gradients[i], self.learning_rate) for i in range(len(self.layers))]
+                # Compute loss
+                loss = self.get_loss(x, y)
 
-                # added loss and number of training samples to running tally
-                total_loss += batch_loss
+                # Compute gradients
+                gradients = nn.gradients(loss, self.layers+self.biases)
+                layer_gradients = gradients[:self.num_layers]
+                bias_gradients = gradients[self.num_layers:]
+
+                # Update weights and biases
+                for i in range(self.num_layers):
+                    self.layers[i].update(layer_gradients[i], self.learning_rate)
+                    self.biases[i].update(bias_gradients[i], self.learning_rate)
+
+                # Add loss and number of training samples to running tally for while loop exit criteria
+                total_loss += nn.as_scalar(loss)
                 num_samples += self.batch_size
 
             # compute average loss for tally
