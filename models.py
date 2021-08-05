@@ -166,6 +166,24 @@ class DigitClassificationModel(object):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
 
+        # model architecture
+        hidden_layer_dims = [(300,200),(200,100)]
+        input_dim = [(784,hidden_layer_dims[0][0])]
+        output_dim = [(hidden_layer_dims[-1][1],10)]
+        layer_dims = input_dim + hidden_layer_dims + output_dim
+
+        # instantiate layers as parameter objects
+        self.layers = [nn.Parameter(dim[0],dim[1]) for dim in layer_dims]
+        self.num_layers = len(self.layers)
+        self.biases = [nn.Parameter(1,dim[1]) for dim in layer_dims]
+
+        # training parameters
+        self.loss_fn = nn.SoftmaxLoss
+        self.learning_rate = .05
+        self.batch_size = 10
+        self.max_epochs = 100
+        self.target_accuracy = 0.975
+
     def run(self, x):
         """
         Runs the model for a batch of examples.
@@ -181,6 +199,18 @@ class DigitClassificationModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        layer_input = x
+        layer_output = None
+        for i in range(self.num_layers):
+            weights = self.layers[i]
+            bias = self.biases[i]
+            if i < self.num_layers - 1:
+                layer_output = nn.ReLU(nn.AddBias(nn.Linear(layer_input, weights), bias))
+                layer_input = layer_output
+            else:
+                layer_output = nn.AddBias(nn.Linear(layer_input, weights), bias)
+
+        return layer_output
 
     def get_loss(self, x, y):
         """
@@ -196,12 +226,38 @@ class DigitClassificationModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        y_pred = self.run(x)
+        return self.loss_fn(y_pred,y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        accuracy = 0
+        epochs = 0
+        while accuracy < self.target_accuracy and epochs < self.max_epochs:
+
+            epochs += 1
+
+            for x,y in dataset.iterate_once(self.batch_size):
+
+                # Compute loss
+                loss = self.get_loss(x, y)
+
+                # Compute gradients
+                gradients = nn.gradients(loss, self.layers+self.biases)
+                layer_gradients = gradients[:self.num_layers]
+                bias_gradients = gradients[self.num_layers:]
+
+                # Update weights and biases
+                for i in range(self.num_layers):
+                    self.layers[i].update(layer_gradients[i], -1*self.learning_rate)
+                    self.biases[i].update(bias_gradients[i], -1*self.learning_rate)
+
+            # evaluate model accuracy on validation set
+            accuracy = dataset.get_validation_accuracy()
+
 
 class DeepQModel(object):
     """
@@ -215,9 +271,18 @@ class DeepQModel(object):
         # Remember to set self.learning_rate, self.numTrainingGames,
         # self.parameters, and self.batch_size!
         "*** YOUR CODE HERE ***"
-        self.learning_rate = None
-        self.numTrainingGames = None
-        self.batch_size = None
+
+        # model architecture
+        input_layer = [(self.state_size, 100),(1, 100)]  # input layer weight and bias dimensions
+        hidden_layers = [(self.num_actions, 200),(1,200),(200,100),(1,100)]   # hidden layer weight and bias dimensions
+        output_layer = [(100,self.num_actions),(1,self.num_actions)]  # output layer weight and bias dimensions
+        layer_dims = input_layer + hidden_layers + output_layer
+        self.parameters = [nn.Parameter(dim[0],dim[1]) for dim in layer_dims]
+
+        # training parameters
+        self.learning_rate = 0.05
+        self.numTrainingGames = 1500
+        self.batch_size = 20
 
     def get_loss(self, states, Q_target):
         """
@@ -230,6 +295,8 @@ class DeepQModel(object):
             loss node between Q predictions and Q_target
         """
         "*** YOUR CODE HERE ***"
+        Q_pred = self.run(states)
+        return nn.SquareLoss(Q_pred,Q_target)
 
     def run(self, states):
         """
@@ -244,6 +311,20 @@ class DeepQModel(object):
                 scores for each of the actions
         """
         "*** YOUR CODE HERE ***"
+        layer_input = states
+        layer_output = None
+        for i in range(len(self.parameters)-1):
+            term = self.parameters[i]
+            # weight node
+            if i % 2 == 0:
+                layer_output = nn.Linear(layer_input,term)
+            # bias node
+            else:
+                layer_output = nn.ReLU(nn.AddBias(layer_output + term))
+                layer_input = layer_output
+
+        layer_output = nn.AddBias(nn.Linear(layer_output,self.parameters[-2]),self.parameters[-1])
+        return layer_output
 
     def gradient_update(self, states, Q_target):
         """
@@ -255,3 +336,8 @@ class DeepQModel(object):
             None
         """
         "*** YOUR CODE HERE ***"
+        loss = self.get_loss(states,Q_target)
+        gradients = nn.gradients(loss, self.parameters)
+        for i in range(len(self.parameters)):
+            grad = gradients[i]
+            self.parameters[i].update(grad, -1*self.learning_rate)
