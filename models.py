@@ -64,7 +64,7 @@ class RegressionModel(object):
         "*** YOUR CODE HERE ***"
 
         # model architecture
-        hidden_layer_dims = [(100,100),(100,100)]
+        hidden_layer_dims = [(300,200),(200,100)]
         input_dim = [(1,hidden_layer_dims[0][0])]
         output_dim = [(hidden_layer_dims[-1][1],1)]
         layer_dims = input_dim + hidden_layer_dims + output_dim
@@ -76,10 +76,10 @@ class RegressionModel(object):
 
         # training parameters
         self.loss_fn = nn.SquareLoss
-        self.learning_rate = .001
+        self.learning_rate = .05
         self.batch_size = 10
-        self.max_epochs = 100
-        self.avg_loss_threshold = 0.02
+        self.max_epochs = 1000
+        self.loss_threshold = 0.02/10
 
     def run(self, x):
         """
@@ -96,12 +96,13 @@ class RegressionModel(object):
         for i in range(self.num_layers):
             weights = self.layers[i]
             bias = self.biases[i]
-            layer_output = nn.ReLU(nn.AddBias(nn.Linear(layer_input, weights), bias))
-            layer_input = layer_output
+            if i < self.num_layers - 1:
+                layer_output = nn.ReLU(nn.AddBias(nn.Linear(layer_input, weights), bias))
+                layer_input = layer_output
+            else:
+                layer_output = nn.AddBias(nn.Linear(layer_input, weights), bias)
 
         return layer_output
-
-
 
 
     def get_loss(self, x, y):
@@ -123,12 +124,12 @@ class RegressionModel(object):
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
-        average_loss = float('inf')
-        total_loss = 0
-        num_samples = 0
+        loss = float('inf')
         epochs = 0
-        while average_loss > self.avg_loss_threshold and epochs < self.max_epochs:
+        while loss > self.loss_threshold and epochs < self.max_epochs:
+
             epochs += 1
+
             for x,y in dataset.iterate_once(self.batch_size):
 
                 # Compute loss
@@ -141,16 +142,11 @@ class RegressionModel(object):
 
                 # Update weights and biases
                 for i in range(self.num_layers):
-                    self.layers[i].update(layer_gradients[i], self.learning_rate)
-                    self.biases[i].update(bias_gradients[i], self.learning_rate)
+                    self.layers[i].update(layer_gradients[i], -1*self.learning_rate)
+                    self.biases[i].update(bias_gradients[i], -1*self.learning_rate)
 
-                # Add loss and number of training samples to running tally for while loop exit criteria
-                total_loss += nn.as_scalar(loss)
-                num_samples += self.batch_size
-
-            # compute average loss for tally
-            average_loss = total_loss / num_samples
-
+                # add loss and number of samples considered to running totals
+                loss = nn.as_scalar(loss)
 
 class DigitClassificationModel(object):
     """
