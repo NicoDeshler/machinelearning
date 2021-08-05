@@ -261,7 +261,7 @@ class PacmanDeepQAgent(PacmanQAgent):
         Qhat_eval = Qhat_ns.data[np.arange(len(best_action_idxs)),best_action_idxs]
 
         Q_target = np.copy(Q_s.data)
-        Q_target[np.arange(len(best_action_idxs)),best_action_idxs] = rewards + (1-dones)*self.discount*Qhat_eval + exploration_bonus
+        Q_target[np.arange(len(actions)),actions] = rewards + (1-dones)*self.discount*Qhat_eval + exploration_bonus
 
         """
         # unrolled

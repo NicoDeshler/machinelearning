@@ -320,7 +320,7 @@ class DeepQModel(object):
                 layer_output = nn.Linear(layer_input,term)
             # bias node
             else:
-                layer_output = nn.ReLU(nn.AddBias(layer_output + term))
+                layer_output = nn.ReLU(nn.AddBias(layer_output,term))
                 layer_input = layer_output
 
         layer_output = nn.AddBias(nn.Linear(layer_output,self.parameters[-2]),self.parameters[-1])
